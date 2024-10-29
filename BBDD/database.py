@@ -1,10 +1,9 @@
-import os
 from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials, firestore
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
+
 
 class FirebaseInitializer:
     def __init__(self):
@@ -115,7 +114,7 @@ class FirebaseInitializer:
         }
     }
 
-    def validate_data(self, collection_name: "string", data: dict) -> bool:
+    def validate_data(self, collection_name: str, data: dict) -> bool:
         """Valida los datos contra el esquema definido"""
         if collection_name not in self.FIREBASE_SCHEMA:
             return False

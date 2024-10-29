@@ -18,12 +18,13 @@ from BBDD.database import FirebaseInitializer
 
 load_dotenv()
 
-mlflow.set_tracking_uri('http://mlflow:5000')
-mlflow.set_experiment('stroke_prediction_xgboost')
+mlflow.set_tracking_uri('http://mlflow:5000') # Asignar la URL del servidor de MLflow
+mlflow.set_experiment('stroke_prediction_xgboost') # Asignar el experimento de MLflow
 
 class XGBoostStrokeModel:
     def __init__(self, csv_path=None, model_path=None, scaler_path=None):
         if csv_path:
+            # Si le damos un archivo CSV, inicializamos el modelo completo
             self.model = None
             self.scaler = None
             self.feature_names = None
@@ -39,17 +40,19 @@ class XGBoostStrokeModel:
             self.schema = firebase_init.FIREBASE_SCHEMA['new_data']
             
             self.db_config = {
-                'collection': 'new_data',
+                'collection': 'new_data', # Nombre de la colección en Firestore
                 'batch_size': int(os.getenv('FIRESTORE_BATCH_SIZE', '1000')),
                 'cache_duration': int(os.getenv('FIRESTORE_CACHE_DURATION', '300'))
             }
             self._cached_data = None
             self._last_cache_time = None
         elif model_path and scaler_path:
+            # Si le damos rutas a un modelo y un escalador, los cargamos
             self.model = joblib.load('src/model/xgboost_model.joblib')
             self.scaler = joblib.load('src/model/xgb_scaler.joblib')
 
     def load_data_from_csv(self):
+        """Carga datos desde un archivo CSV y los almacena en un DataFrame."""
         try:
             df = pd.read_csv(self.csv_path)
             self.feature_names = df.drop('stroke', axis=1).columns
@@ -60,12 +63,14 @@ class XGBoostStrokeModel:
             return pd.DataFrame()
 
     def _should_refresh_cache(self):
+        """Determina si la caché de datos debe ser actualizada."""
         if self._last_cache_time is None:
             return True
         cache_age = datetime.now() - self._last_cache_time
         return cache_age.total_seconds() > self.db_config['cache_duration']
 
     def load_data_from_firestore(self):
+        """Carga datos desde Firestore y los almacena en un DataFrame."""
         try:
             # Check if we can use cached data
             if not self._should_refresh_cache() and self._cached_data is not None:
@@ -126,7 +131,7 @@ class XGBoostStrokeModel:
             return pd.DataFrame()
 
     def _validate_document(self, doc_dict):
-        """Valida un documento contra el esquema definido"""
+        """Valida un documento contra el esquema definido."""
         required_fields = set(self.schema['fields'].keys())
         doc_fields = set(doc_dict.keys())
         
@@ -147,6 +152,7 @@ class XGBoostStrokeModel:
         return True
 
     def preprocess_data(self, df):
+        """Preprocesa los datos, escalando las características y separando las etiquetas."""
         if df.empty:
             self.logger.warning("El DataFrame está vacío")
             return None, None
@@ -165,6 +171,7 @@ class XGBoostStrokeModel:
             return None, None
 
     def train_model(self, X, y):
+        """Entrena el modelo XGBoost con los datos proporcionados."""
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
         
         print("Forma de X_train:", X_train.shape)
@@ -177,6 +184,7 @@ class XGBoostStrokeModel:
         with mlflow.start_run():
             if self.model is None:
                 self.model = xgb.XGBClassifier(
+                    # Usamos los parámetros que se encontraron durante el primer entrenamiento para evitar usar optuna y comer más recursos y tiempo
                     use_label_encoder=False,
                     eval_metric='logloss',
                     n_estimators=100,
@@ -210,6 +218,7 @@ class XGBoostStrokeModel:
         return X_test, y_test
 
     def initial_training(self):
+        """Realiza el entrenamiento inicial del modelo usando datos de un archivo CSV."""
         if not os.path.exists(self.initial_training_file):
             print("Realizando entrenamiento inicial desde CSV...")
             df = self.load_data_from_csv()
@@ -223,11 +232,12 @@ class XGBoostStrokeModel:
             self.load_model('src/model/xgboost_model.joblib', 'src/model/xgb_scaler.joblib')
 
     def check_and_retrain(self):
+        """Verifica si se cumplen las condiciones para reentrenar el modelo y lo reentrena si es necesario."""
         if self.should_check():
             print("Verificando condiciones para reentrenamiento...")
             df = self.load_data_from_firestore()
             
-            if len(df) > int(os.getenv('RETRAIN_THRESHOLD', 10000)):
+            if len(df) > int(os.getenv('RETRAIN_THRESHOLD', 10000)): # Se requieren 10000 registros
                 print("Condiciones cumplidas. Iniciando reentrenamiento...")
                 X, y = self.preprocess_data(df)
                 self.train_model(X, y)
@@ -237,6 +247,7 @@ class XGBoostStrokeModel:
             self.update_last_check()
 
     def should_check(self):
+        """Determina si se debe realizar una verificación para reentrenar el modelo."""
         if not os.path.exists(self.last_check_file):
             return True
         
@@ -246,6 +257,7 @@ class XGBoostStrokeModel:
         return time.time() - last_check > self.check_interval
 
     def update_last_check(self):
+        """Actualiza el archivo de última verificación con la marca de tiempo actual."""
         with open(self.last_check_file, 'w') as f:
             f.write(str(time.time()))
 
@@ -258,10 +270,12 @@ class XGBoostStrokeModel:
         return self.model.predict_proba(X_scaled)
     
     def load_model(self, model_path, scaler_path):
+        """Carga el modelo y el escalador desde archivos."""
         self.model = joblib.load(model_path)
         self.scaler = joblib.load(scaler_path)
 
 def background_worker(model):
+    """Función que se ejecuta en segundo plano para verificar y reentrenar el modelo periódicamente."""
     while True:
         model.check_and_retrain()
         time.sleep(model.check_interval)
