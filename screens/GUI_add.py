@@ -12,6 +12,7 @@ from threading import Thread
 from src.model.mlflow_xgboost import XGBoostStrokeModel, background_worker
 from dotenv import load_dotenv
 from datetime import datetime
+from typing import Dict, List, Union
 
 load_dotenv()
 
@@ -103,7 +104,161 @@ def get_glucose_category(glucose):
         return "Pre-diabetes"
     else:
         return "Diabetes"
+
+def validate_and_process_batch_data(df: pd.DataFrame) -> tuple[List[Dict], List[str]]:
+    """
+    Valida y procesa los datos del DataFrame para su inserción en Firestore.
+    """
+    processed_data = []
+    errors = []
     
+    required_columns = [
+        "age", "gender", "hypertension", "heart_disease", 
+        "ever_married", "work_type", "Residence_type", 
+        "smoking_status", "bmi", "avg_glucose_level", "stroke"
+    ]
+    
+    # Verificar columnas requeridas
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        return [], [f"Faltan las siguientes columnas requeridas: {', '.join(missing_columns)}"]
+    
+    # Procesar cada fila
+    for idx, row in df.iterrows():
+        try:
+            # Validaciones básicas
+            if not (0 <= row['age'] <= 120):
+                errors.append(f"Fila {idx+1}: Edad fuera de rango (0-120)")
+                continue
+                
+            if not isinstance(row['bmi'], (int, float)) or not (10 <= row['bmi'] <= 50):
+                errors.append(f"Fila {idx+1}: IMC fuera de rango (10-50)")
+                continue
+                
+            if not isinstance(row['avg_glucose_level'], (int, float)) or not (50 <= row['avg_glucose_level'] <= 300):
+                errors.append(f"Fila {idx+1}: Nivel de glucosa fuera de rango (50-300)")
+                continue
+            
+            # Procesar datos
+            processed_row = {
+                "age": int(row['age']),
+                "gender": str(row['gender']),
+                "hypertension": int(row['hypertension']),
+                "heart_disease": int(row['heart_disease']),
+                "ever_married": str(row['ever_married']),
+                "work_type": str(row['work_type']),
+                "Residence_type": str(row['Residence_type']),
+                "smoking_status": str(row['smoking_status']),
+                "bmi_category": get_bmi_category(float(row['bmi'])),
+                "age_category": get_age_category(int(row['age'])),
+                "glucose_level_category": get_glucose_category(float(row['avg_glucose_level'])),
+                "stroke": int(row['stroke']),
+                "timestamp": datetime.now()
+            }
+            processed_data.append(processed_row)
+            
+        except Exception as e:
+            errors.append(f"Error en fila {idx+1}: {str(e)}")
+    
+    return processed_data, errors
+
+def batch_upload_to_firebase(data: List[Dict]) -> tuple[bool, List[str]]:
+    """
+    Sube múltiples registros a Firestore en lotes.
+    """
+    batch_size = 100
+    errors = []
+    
+    try:
+        if len(data) > 300:
+            return False, ["El número de registros excede el límite permitido (300)"]
+        
+        # Procesar en lotes
+        for i in range(0, len(data), batch_size):
+            batch_data = data[i:i + batch_size]
+            batch = db.batch()
+            
+            for record in batch_data:
+                doc_ref = db.collection('new_data').document()
+                batch.set(doc_ref, record)
+            
+            batch.commit()
+        
+        return True, []
+        
+    except Exception as e:
+        return False, [f"Error al subir datos: {str(e)}"]
+
+def handle_file_upload():
+    """
+    Maneja la carga masiva de datos mediante archivos CSV o JSON.
+    """
+    st.markdown('---')
+    st.markdown('<h2 class="medium-font">Carga Masiva de Datos</h2>', unsafe_allow_html=True)
+    st.markdown('<p class="small-font">Suba un archivo CSV o JSON con múltiples casos (máximo 300 registros)</p>', 
+                unsafe_allow_html=True)
+    
+    # Mostrar ejemplo de formato
+    with st.expander("Ver formato requerido del archivo"):
+        st.markdown("""
+        El archivo debe contener las siguientes columnas:
+        - age: edad (0-120)
+        - gender: "Male" o "Female"
+        - hypertension: 0 o 1
+        - heart_disease: 0 o 1
+        - ever_married: "Yes" o "No"
+        - work_type: "Private", "Self-employed", "Govt_job", "children", "Never_worked"
+        - Residence_type: "Urban" o "Rural"
+        - avg_glucose_level: nivel de glucosa (50-300)
+        - bmi: índice de masa corporal (10-50)
+        - smoking_status: "never smoked", "smokes", "formerly smoked"
+        - stroke: 0 o 1
+        """)
+    
+    uploaded_file = st.file_uploader(
+        "Seleccionar archivo", 
+        type=["csv", "json"],
+        help="Formatos aceptados: CSV o JSON"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            # Leer archivo
+            if uploaded_file.type == "application/json":
+                df = pd.read_json(uploaded_file)
+            else:
+                df = pd.read_csv(uploaded_file)
+            
+            # Mostrar preview
+            st.markdown('<p class="small-font">Vista previa de los datos:</p>', unsafe_allow_html=True)
+            st.dataframe(df.head(), use_container_width=True)
+            
+            # Validar y procesar
+            with st.spinner("Validando datos..."):
+                processed_data, validation_errors = validate_and_process_batch_data(df)
+            
+            if validation_errors:
+                st.error("Se encontraron errores en los datos:")
+                for error in validation_errors:
+                    st.warning(error)
+                return
+            
+            # Botón de confirmación
+            col1, col2, col3 = st.columns([1,2,1])
+            with col2:
+                if st.button("Confirmar carga de datos", use_container_width=True):
+                    with st.spinner(f"Subiendo {len(processed_data)} registros..."):
+                        success, upload_errors = batch_upload_to_firebase(processed_data)
+                        
+                    if success:
+                        st.success(f"Se han cargado exitosamente {len(processed_data)} registros.")
+                    else:
+                        st.error("Error al subir los datos:")
+                        for error in upload_errors:
+                            st.error(error)
+        
+        except Exception as e:
+            st.error(f"Error al procesar el archivo: {str(e)}")
 
 xgb_model, dict_woe = load_model()
 nn_model, nn_scaler = load_nn_model()
@@ -161,6 +316,8 @@ def screen_add():
             st.success("Los datos han sido añadidos exitosamente a la base de datos.")
         else:
             st.error("Hubo un error al guardar los datos. Por favor, intente nuevamente.")
+
+    handle_file_upload()
 
     # Pie de página
     st.markdown('---')
