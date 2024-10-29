@@ -1,0 +1,66 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}  # Define la contraseña del usuario root
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  streamlit:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: streamlit-app
+    restart: always
+    ports:
+      - "8501:8501"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mysql
+      - mlflow
+    networks:
+      - mynetwork
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_TRACKING_URI=mysql+pymysql://${DB_USER}:${DB_PASSWORD}@mysql:3306/${DB_NAME}
+    command: >
+      /bin/sh -c "
+      pip install pymysql &&
+      mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri mysql+pymysql://${DB_USER}:${DB_PASSWORD}@mysql:3306/${DB_NAME} --default-artifact-root /mlflow/artifacts
+      "
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      - mysql
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  mlflow_artifacts:

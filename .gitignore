@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Entornos virtuales
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+env
+.env
+# Archivos de usuario
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+serviceAccountKey.json
+
+# Informes
+reports/
+output/
+figures/
+
+#Modelos entrenados
+nn_stroke_img.keras
