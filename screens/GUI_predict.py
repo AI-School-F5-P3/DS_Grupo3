@@ -172,8 +172,8 @@ def screen_predict():
         xgb_probabilities = xgb_model.predict_proba(inputs_woe)[0][1]
         inputs_nn = nn_scaler.transform(inputs_woe)
         nn_probabilities = nn_model.predict(inputs_nn)
-        nn_probability = nn_probabilities[0]
-        final_probabilities = 0.6 * xgb_probabilities + 0.4 * nn_probability
+        #nn_probability = nn_probabilities[0]
+        final_probabilities = xgb_probabilities
         final_prediction = 1 if final_probabilities >= 0.5 else 0
 
         # Prepare data according to Firebase schema
