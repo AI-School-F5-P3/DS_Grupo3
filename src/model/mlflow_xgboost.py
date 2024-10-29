@@ -2,18 +2,16 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_auc_score, roc_curve, auc
+from sklearn.metrics import accuracy_score, roc_auc_score
 import xgboost as xgb
 import joblib
-import seaborn as sns
-import matplotlib.pyplot as plt
 import os
 import mlflow
 import mlflow.sklearn
 import time
 from threading import Thread
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
 from BBDD.database import FirebaseInitializer
 
 load_dotenv()
