@@ -4,7 +4,6 @@ import numpy as np
 import plotly.graph_objects as go
 from scipy.stats import ks_2samp
 from screens.aux_functions import load_css, load_image
-from BBDD.database_utils import get_database_connection
 
 def screen_info():
     load_css('style.css')
