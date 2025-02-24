@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/526822939437852655/b93dd5428976472999cb276c9b3aa73d/artifacts
+end_time: 1729466551387
+entry_point_name: ''
+experiment_id: '526822939437852655'
+lifecycle_stage: active
+run_id: b93dd5428976472999cb276c9b3aa73d
+run_name: colorful-koi-669
+run_uuid: b93dd5428976472999cb276c9b3aa73d
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1729466198146
+status: 4
+tags: []
+user_id: Alberto

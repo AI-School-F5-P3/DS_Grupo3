@@ -1,0 +1,156 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap');
+
+/* Estilo global para todo el cuerpo de la aplicación */
+
+.title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    margin-top: 20px;
+}
+
+body {
+    color: white !important;
+    background-color: #000e26;
+}
+
+/* Estilo para el header */
+.stApp > header {
+    background-color: #000e26 !important;
+}
+
+/* Estilo para la aplicación Streamlit */
+.stApp {
+    background-color: #000e26;
+}
+
+/* Estilo para el contenido principal */
+.main {
+    background-color: #000e26;
+    color: white !important;
+}
+
+/* Asegurarse de que todos los elementos tengan el fondo correcto */
+div[data-testid="stToolbar"],
+div[data-testid="stDecoration"],
+div[data-testid="stStatusWidget"] {
+    background-color: #000e26 !important;
+}
+
+.centered-header {
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+/* Estilos para selectbox */
+div[data-baseweb="select"] > div {
+    background-color: #00a2bb !important;
+    color: white !important;
+}
+
+div[data-baseweb="select"] svg {
+    color: white !important;
+}
+
+div[data-baseweb="popover"] {
+    background-color: #00a2bb !important;
+    color: white !important;
+}
+
+div[data-baseweb="popover"] ul {
+    background-color: #00a2bb !important;
+    color: white !important;
+}
+
+div[data-baseweb="popover"] li {
+    color: white !important;
+}
+
+div[data-baseweb="popover"] li:hover,
+div[data-baseweb="popover"] li[aria-selected="true"] {
+    background-color: #008ca1 !important;
+    color: white !important;
+}
+
+.recommendation-high {
+    background-color: #00a2bb;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.recommendation-low {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+/* Centrar el logo */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.logo-container img {
+    max-width: 150px;
+}
+
+/* Estilos para textos específicos */
+.big-font, .medium-font, p, h1, h2, h3, h4, h5, h6 {
+    color: white !important;
+}
+
+/* Estilo para el sidebar */
+.stSidebar {
+    background-color: #000e26;
+}
+
+/* Estilo para los elementos del sidebar */
+.stSidebar [data-testid="stSidebarNav"] {
+    background-color: #000e26;
+}
+
+/* Estilo para los botones del sidebar */
+.stSidebar [data-testid="stSidebarNav"] button {
+    color: white !important;
+}
+
+/* Estilo para el título del menú de navegación */
+.stSidebar [data-testid="stSidebarNav"] span {
+    color: white !important;
+}
+
+/* Estilo para la flecha del menú de navegación */
+.stSidebar [data-testid="stSidebarNav"] svg {
+    color: white !important;
+}
+
+/* Estilos adicionales */
+.service-box {
+    background-color: #044271;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 10px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    color: white !important;
+}
+
+.stButton>button {
+    background-color: #00a2bb;
+    color: white !important;
+}
+
+/* Asegurarse de que todos los textos sean blancos */
+div, span, label, a {
+    color: white !important;
+}

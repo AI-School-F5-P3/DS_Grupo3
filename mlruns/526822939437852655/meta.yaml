@@ -1,0 +1,6 @@
+artifact_location: mlflow-artifacts:/526822939437852655
+creation_time: 1729466197844
+experiment_id: '526822939437852655'
+last_update_time: 1729466197844
+lifecycle_stage: active
+name: stroke_prediction_nn_experiment
